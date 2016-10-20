@@ -1,16 +1,18 @@
 package solutions.entities;
 
 import miniORM.persistence.Column;
+import miniORM.persistence.Entity;
 import miniORM.persistence.Id;
 
 import java.util.Date;
 
+@Entity(name = "users")
 public class User {
 
     @Id
     private Long id;
 
-    @Column(name = "username", length = 250)
+    @Column(name = "username", length = 50)
     private String username;
 
     @Column(name = "password")

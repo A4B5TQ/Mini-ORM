@@ -215,6 +215,7 @@ public class EntityManager implements DbContext {
                     Column column = field.getAnnotation(Column.class);
                     return "DOUBLE" + "(" + column.scale() + "," + column.precision() + ")";
                 }
+                return "DOUBLE";
         }
         return null;
     }
