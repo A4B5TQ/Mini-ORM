@@ -10,7 +10,7 @@ public class User {
     @Id
     private Long id;
 
-    @Column(name = "username")
+    @Column(name = "username", length = 250)
     private String username;
 
     @Column(name = "password")

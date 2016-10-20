@@ -7,6 +7,9 @@ import java.util.Properties;
 
 public class Connector {
 
+    private static final String CREATE_IF_NO_EXIST = "?createDatabaseIfNotExist=true";
+    private static final String MYSQL_CONFIG = "&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+
     private static Connection connection = null;
 
     /**
@@ -27,7 +30,7 @@ public class Connector {
         connectionProp.put("user", username);
         connectionProp.put("password", password);
         connection = DriverManager.getConnection("jdbc:" + driver + "://" + host + ":"
-        + port + "/" + dbName,connectionProp);
+        + port + "/" + dbName + CREATE_IF_NO_EXIST + MYSQL_CONFIG,connectionProp);
     }
 
     public static Connection getConnection() {

@@ -5,10 +5,7 @@ import miniORM.persistence.Entity;
 import miniORM.persistence.Id;
 
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -16,6 +13,9 @@ public class EntityManager implements DbContext {
 
     private Connection connection;
     private Set<Object> persistedEntities;
+    private Statement statement;
+    private PreparedStatement preparedStatement;
+    private ResultSet resultSet;
 
     public EntityManager(Connection connection) {
         this.connection = connection;
@@ -58,22 +58,21 @@ public class EntityManager implements DbContext {
     @SuppressWarnings("unchecked")
     public <E> Iterable<E> find(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
 
-        Statement statement = this.connection.createStatement();
+        this.statement = this.connection.createStatement();
 
         String query = "SELECT * FROM " + this.getTableName(table);
 
-        ResultSet resultSet = statement.executeQuery(query);
+        this.resultSet = this.statement.executeQuery(query);
 
         if (this.persistedEntities.size() > 0) {
             this.persistedEntities.clear();
         }
 
-        while (resultSet.next()) {
+        while (this.resultSet.next()) {
             E entity = table.newInstance();
-            this.fillEntity(table, resultSet, entity);
+            this.fillEntity(table, this.resultSet, entity);
             this.persistedEntities.add(entity);
         }
-
         return Collections.unmodifiableSet(new HashSet<>(this.persistedEntities.stream()
                 .map(e -> ((E) e)).collect(Collectors.toSet())));
     }
@@ -107,7 +106,6 @@ public class EntityManager implements DbContext {
                 .map(e -> ((E) e)).collect(Collectors.toSet())));
     }
 
-
     /**
      * @param table object from class annotated with "@Entity"
      * @return the first entity object of type E
@@ -130,6 +128,7 @@ public class EntityManager implements DbContext {
 
         return entity;
     }
+
 
     /**
      * @param table object class annotated with "@Entity"
@@ -154,6 +153,43 @@ public class EntityManager implements DbContext {
         this.fillEntity(table, resultSet, entity);
 
         return entity;
+    }
+
+    /**
+     * Delete entity object from database by given id;
+     * @param table - object class annotated with "@Entity"
+     * @param id - Unique primary key
+     * @return
+     * @throws SQLException
+     * @throws IllegalAccessException
+     */
+    @Override
+    public <E> boolean delete(Class<E> table, Long id) throws SQLException, IllegalAccessException {
+        String query = "DELETE FROM " + this.getTableName(table)
+                + " WHERE " + getFieldName(this.getId(table)) + "= ?";
+        this.preparedStatement = this.connection.prepareStatement(query);
+        this.preparedStatement.setLong(1,id);
+        return this.preparedStatement.execute();
+    }
+
+    /**
+     * Close all open connections
+     *
+     * @throws SQLException
+     */
+    public void closeConnections() throws SQLException {
+
+        if (this.resultSet != null) {
+            this.resultSet.close();
+        }
+
+        if (this.statement != null) {
+            this.statement.close();
+        }
+
+        if (this.preparedStatement != null) {
+            this.preparedStatement.close();
+        }
     }
 
     /**
@@ -313,7 +349,6 @@ public class EntityManager implements DbContext {
         return connection.prepareStatement(query).execute();
     }
 
-
     /**
      * Update existing entity in database
      *
@@ -348,6 +383,7 @@ public class EntityManager implements DbContext {
 
         return connection.prepareStatement(query + where).execute();
     }
+
 
     /**
      * Map result set from database to Entity
