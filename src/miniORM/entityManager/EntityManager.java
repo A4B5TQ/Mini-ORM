@@ -27,17 +27,6 @@ public class EntityManager implements DbContext {
         this.persistedEntities = new HashSet<>();
     }
 
-    /**
-     * Insert or update entity depending if it is attached to the context
-     *
-     * @param entity object from class annotated with "@Entity"
-     * @return True if operation is successfully or false if it`s not
-     * @throws IllegalAccessException - is thrown when an application tries
-     *                                to reflectively create an instance (other than an array),
-     *                                set or get a field, or invoke a method, but the currently
-     *                                executing method does not have access to the definition of
-     *                                the specified class, field, method or constructor.
-     */
     @Override
     public <E> boolean persist(E entity) throws IllegalAccessException, SQLException {
 
@@ -54,11 +43,7 @@ public class EntityManager implements DbContext {
         return this.doUpdate(entity, primary);
     }
 
-    /**
-     * @param table object from class annotated with "@Entity"
-     * @return collection of all entity objects of type <E>
-     * or null if the entity does not exist
-     */
+
     @Override
     @SuppressWarnings("unchecked")
     public <E> Set<E> find(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
@@ -82,13 +67,6 @@ public class EntityManager implements DbContext {
                 .map(e -> ((E) e)).collect(Collectors.toSet())));
     }
 
-    /**
-     * @param where user specific clause(s) for search criteria
-     * @param table object from class annotated with "@Entity"
-     * @return collection of all entity objects of type E
-     * matching the criteria given in “where”
-     * or null if the entity does not exist
-     */
     @Override
     @SuppressWarnings("unchecked")
     public <E> Set<E> find(Class<E> table, String where) throws SQLException, IllegalAccessException, InstantiationException {
@@ -111,11 +89,6 @@ public class EntityManager implements DbContext {
                 .map(e -> ((E) e)).collect(Collectors.toSet())));
     }
 
-    /**
-     * @param table object from class annotated with "@Entity"
-     * @return the first entity object of type E
-     * or null if the entity does not exist
-     */
     @Override
     public <E> E findFirst(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
 
@@ -133,12 +106,6 @@ public class EntityManager implements DbContext {
     }
 
 
-    /**
-     * @param table object class annotated with "@Entity"
-     * @param where user specific clause(s) for search criteria
-     * @return the first entity object of type E matching the criteria given in “where”
-     * or null if the entity does not exist
-     */
     @Override
     public <E> E findFirst(Class<E> table, String where) throws SQLException, IllegalAccessException, InstantiationException {
 
@@ -156,29 +123,16 @@ public class EntityManager implements DbContext {
         return this.fillEntity(table, resultSet, entity);
     }
 
-    /**
-     * Delete entity object from database by given id;
-     *
-     * @param table - object class annotated with "@Entity"
-     * @param id    - Unique primary key
-     * @return
-     * @throws SQLException
-     * @throws IllegalAccessException
-     */
+
     @Override
     public <E> boolean delete(Class<E> table, Long id) throws SQLException, IllegalAccessException {
         String query = "DELETE FROM " + this.getTableName(table)
-                + " WHERE " + getFieldName(this.getId(table)) + "= ?";
+                + " WHERE " + Mapper.getFieldName(this.getId(table)) + "= ?";
         this.preparedStatement = this.connection.prepareStatement(query);
         this.preparedStatement.setLong(1, id);
         return this.preparedStatement.execute();
     }
 
-    /**
-     * Close all open connections
-     *
-     * @throws SQLException
-     */
     public void closeConnections() throws SQLException {
 
         if (this.resultSet != null) {
@@ -209,20 +163,6 @@ public class EntityManager implements DbContext {
         }
 
         return entity.getSimpleName();
-    }
-
-    /**
-     * @param field - field from entity class
-     * @return the value of the name type of Column annotation
-     * or if it’s not set returns the name of the field.
-     */
-    private String getFieldName(Field field) {
-
-        if (field.isAnnotationPresent(Column.class)) {
-            Column column = field.getAnnotation(Column.class);
-            return column.name().isEmpty() ? field.getName() : column.name();
-        }
-        return field.getName();
     }
 
     /**
@@ -301,7 +241,7 @@ public class EntityManager implements DbContext {
 
         for (Field field : entity.getClass().getDeclaredFields()) {
             field.setAccessible(true);
-            String item = this.getFieldName(field) + " " +
+            String item = Mapper.getFieldName(field) + " " +
                     this.getDbType(field, primary);
             queryItems.add(item);
         }
@@ -343,7 +283,7 @@ public class EntityManager implements DbContext {
         for (Field field : entity.getClass().getDeclaredFields()) {
             field.setAccessible(true);
             if (!field.isAnnotationPresent(Id.class)) {
-                columns.add(this.getFieldName(field));
+                columns.add(Mapper.getFieldName(field));
                 if (!field.getType().isAssignableFrom(Date.class)) {
                     values.add("\'" + field.get(entity) + "\'");
                 } else {
@@ -385,7 +325,7 @@ public class EntityManager implements DbContext {
         for (Field field : entity.getClass().getDeclaredFields()) {
             field.setAccessible(true);
             if (!field.isAnnotationPresent(Id.class)) {
-                String row = this.getFieldName(field) + "=";
+                String row = Mapper.getFieldName(field) + "=";
                 if (!field.getType().isAssignableFrom(Date.class)) {
                     rows.add(row + "\'" + field.get(entity) + "\'");
                 } else {

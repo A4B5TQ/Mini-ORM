@@ -8,7 +8,7 @@ import java.util.Properties;
 public class Connector implements AutoCloseable {
 
     private static final String CREATE_IF_NO_EXIST = "?createDatabaseIfNotExist=true";
-    private static final String MYSQL_CONFIG = "&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+    private static final String MYSQL_CONFIG = "&useSSL=false";
 
     private static Connection connection = null;
 

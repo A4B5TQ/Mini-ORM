@@ -7,18 +7,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 
-public class Mapper {
+public interface Mapper {
 
     /**
-     *
-     * @param instance - new instance from entity class
+     * @param instance  - new instance from entity class
      * @param resultSet - result set from database
-     * @param fields - properties in entity class
+     * @param fields    - properties in entity class
      * @return - filled instance from entity class
      * @throws SQLException
      * @throws IllegalAccessException
      */
-    public static <E> E map(E instance, ResultSet resultSet, Field... fields) throws SQLException, IllegalAccessException {
+    static <E> E map(E instance, ResultSet resultSet, Field... fields) throws SQLException, IllegalAccessException {
 
         for (Field field : fields) {
 
@@ -43,8 +42,8 @@ public class Mapper {
             } else if (field.getType().isAssignableFrom(Date.class)) {
 
                 field.set(instance, resultSet.getDate(fieldName));
-            }else if (field.getType().isAssignableFrom(Double.TYPE) ||
-                    field.getType().isAssignableFrom(Double.class) ) {
+            } else if (field.getType().isAssignableFrom(Double.TYPE) ||
+                    field.getType().isAssignableFrom(Double.class)) {
 
                 field.set(instance, resultSet.getDate(fieldName));
             }
@@ -53,11 +52,11 @@ public class Mapper {
     }
 
     /**
-     *
-     * @param field - class property
-     * @return - column name from database corresponding to the current entity field
+     * @param field - field from entity class
+     * @return the value of the name type of Column annotation
+     * or if it’s not set returns the name of the field.
      */
-    private static String getFieldName(Field field) {
+    static String getFieldName(Field field) {
 
         if (field.isAnnotationPresent(Column.class)) {
             Column column = field.getAnnotation(Column.class);
