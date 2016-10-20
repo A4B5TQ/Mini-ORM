@@ -9,10 +9,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class EntityManager implements DbContext {
 
@@ -57,9 +55,27 @@ public class EntityManager implements DbContext {
      * or null if the entity does not exist
      */
     @Override
-    public <E> Iterable<E> find(Class<E> table) {
-        //TODO Implement logic
-        return null;
+    @SuppressWarnings("unchecked")
+    public <E> Iterable<E> find(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
+
+        Statement statement = this.connection.createStatement();
+
+        String query = "SELECT * FROM " + this.getTableName(table);
+
+        ResultSet resultSet = statement.executeQuery(query);
+
+        if (this.persistedEntities.size() > 0) {
+            this.persistedEntities.clear();
+        }
+
+        while (resultSet.next()) {
+            E entity = table.newInstance();
+            this.fillEntity(table, resultSet, entity);
+            this.persistedEntities.add(entity);
+        }
+
+        return Collections.unmodifiableSet(new HashSet<>(this.persistedEntities.stream()
+                .map(e -> ((E) e)).collect(Collectors.toSet())));
     }
 
     /**
@@ -70,9 +86,25 @@ public class EntityManager implements DbContext {
      * or null if the entity does not exist
      */
     @Override
-    public <E> Iterable<E> find(Class<E> table, String where) {
-        //TODO Implement logic
-        return null;
+    @SuppressWarnings("unchecked")
+    public <E> Iterable<E> find(Class<E> table, String where) throws SQLException, IllegalAccessException, InstantiationException {
+        Statement statement = this.connection.createStatement();
+
+        String query = "SELECT * FROM " + this.getTableName(table) + " WHERE 1 "
+                + (where != null ? "AND" + where : "");
+
+        ResultSet resultSet = statement.executeQuery(query);
+        if (this.persistedEntities.size() > 0) {
+            this.persistedEntities.clear();
+        }
+        while (resultSet.next()) {
+            E entity = table.newInstance();
+            this.fillEntity(table, resultSet, entity);
+            this.persistedEntities.add(entity);
+        }
+
+        return Collections.unmodifiableSet(new HashSet<>(this.persistedEntities.stream()
+                .map(e -> ((E) e)).collect(Collectors.toSet())));
     }
 
 
@@ -82,13 +114,25 @@ public class EntityManager implements DbContext {
      * or null if the entity does not exist
      */
     @Override
-    public <E> E findFirst(Class<E> table) {
-        //TODO Implement logic
-        return null;
+    public <E> E findFirst(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
+
+        Statement statement = this.connection.createStatement();
+
+        String query = "SELECT * FROM " + this.getTableName(table) + " LIMIT 1";
+
+        ResultSet resultSet = statement.executeQuery(query);
+
+        E entity = table.newInstance();
+
+        resultSet.next();
+
+        this.fillEntity(table, resultSet, entity);
+
+        return entity;
     }
 
     /**
-     * @param table object from class annotated with "@Entity"
+     * @param table object class annotated with "@Entity"
      * @param where user specific clause(s) for search criteria
      * @return the first entity object of type E matching the criteria given in “where”
      * or null if the entity does not exist
@@ -305,6 +349,14 @@ public class EntityManager implements DbContext {
         return connection.prepareStatement(query + where).execute();
     }
 
+    /**
+     * Map result set from database to Entity
+     * @param table - table object class annotated with "@Entity"
+     * @param resultSet - result from query
+     * @param entity - object instance from Entity class
+     * @throws SQLException
+     * @throws IllegalAccessException
+     */
     private <E> void fillEntity(Class<E> table, ResultSet resultSet, E entity) throws SQLException, IllegalAccessException {
         for (Field field : table.getDeclaredFields()) {
             Mapper.map(field, entity, resultSet, this.getFieldName(field));

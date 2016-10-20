@@ -71,4 +71,5 @@ public class User {
     public void setRegistrationDate(Date registrationDate) {
         this.registrationDate = registrationDate;
     }
+
 }

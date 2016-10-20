@@ -13,7 +13,7 @@ public class Main {
 
 
         // Type password
-        Connector.initConnection("mysql", "root", "", "localhost", "3306", "mini_orm");
+        Connector.initConnection("mysql", "root", "1234", "localhost", "3306", "mini_orm");
 
         Connection connection = Connector.getConnection();
 
@@ -28,7 +28,13 @@ public class Main {
 //
 //        em.persist(user);
 
-        User user1 = em.findFirst(User.class,null);
-        String debug = "";
+        User user1 = em.findFirst(User.class);
+        System.out.println(String.format("Id: %d, Usernmae: %s, Password: %s, Age: %d, Register date: %s",
+                user1.getId(), user1.getUsername(),user1.getPassword(),user1.getAge(), user1.getRegistrationDate().toString()));
+
+        em.find(User.class).forEach(e -> {
+            System.out.println(String.format("Id: %d, Usernmae: %s, Password: %s, Age: %d, Register date: %s",
+                    e.getId(), e.getUsername(),e.getPassword(),e.getAge(), e.getRegistrationDate().toString()));
+        });
     }
 }
