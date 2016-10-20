@@ -1,5 +1,6 @@
 package miniORM.entityManager;
 
+import miniORM.mapper.Mapper;
 import miniORM.persistence.Column;
 import miniORM.persistence.Entity;
 import miniORM.persistence.Id;
@@ -70,7 +71,7 @@ public class EntityManager implements DbContext {
 
         while (this.resultSet.next()) {
             E entity = table.newInstance();
-            this.fillEntity(table, this.resultSet, entity);
+            entity = this.fillEntity(table, this.resultSet, entity);
             this.persistedEntities.add(entity);
         }
         return Collections.unmodifiableSet(new HashSet<>(this.persistedEntities.stream()
@@ -98,7 +99,7 @@ public class EntityManager implements DbContext {
         }
         while (resultSet.next()) {
             E entity = table.newInstance();
-            this.fillEntity(table, resultSet, entity);
+            entity = this.fillEntity(table, resultSet, entity);
             this.persistedEntities.add(entity);
         }
 
@@ -124,9 +125,7 @@ public class EntityManager implements DbContext {
 
         resultSet.next();
 
-        this.fillEntity(table, resultSet, entity);
-
-        return entity;
+        return this.fillEntity(table, resultSet, entity);
     }
 
 
@@ -150,15 +149,14 @@ public class EntityManager implements DbContext {
 
         resultSet.next();
 
-        this.fillEntity(table, resultSet, entity);
-
-        return entity;
+        return this.fillEntity(table, resultSet, entity);
     }
 
     /**
      * Delete entity object from database by given id;
+     *
      * @param table - object class annotated with "@Entity"
-     * @param id - Unique primary key
+     * @param id    - Unique primary key
      * @return
      * @throws SQLException
      * @throws IllegalAccessException
@@ -168,7 +166,7 @@ public class EntityManager implements DbContext {
         String query = "DELETE FROM " + this.getTableName(table)
                 + " WHERE " + getFieldName(this.getId(table)) + "= ?";
         this.preparedStatement = this.connection.prepareStatement(query);
-        this.preparedStatement.setLong(1,id);
+        this.preparedStatement.setLong(1, id);
         return this.preparedStatement.execute();
     }
 
@@ -218,7 +216,6 @@ public class EntityManager implements DbContext {
 
         if (field.isAnnotationPresent(Column.class)) {
             Column column = field.getAnnotation(Column.class);
-
             return column.name().isEmpty() ? field.getName() : column.name();
         }
         return field.getName();
@@ -387,15 +384,16 @@ public class EntityManager implements DbContext {
 
     /**
      * Map result set from database to Entity
-     * @param table - table object class annotated with "@Entity"
+     *
+     * @param table     - table object class annotated with "@Entity"
      * @param resultSet - result from query
-     * @param entity - object instance from Entity class
+     * @param entity    - object instance from Entity class
      * @throws SQLException
      * @throws IllegalAccessException
      */
-    private <E> void fillEntity(Class<E> table, ResultSet resultSet, E entity) throws SQLException, IllegalAccessException {
-        for (Field field : table.getDeclaredFields()) {
-            Mapper.map(field, entity, resultSet, this.getFieldName(field));
-        }
+    private <E> E fillEntity(Class<E> table, ResultSet resultSet, E entity) throws SQLException, IllegalAccessException {
+
+        return Mapper.map(entity, resultSet, table.getDeclaredFields());
+
     }
 }
