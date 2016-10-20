@@ -4,10 +4,12 @@ import miniORM.mapper.Mapper;
 import miniORM.persistence.Column;
 import miniORM.persistence.Entity;
 import miniORM.persistence.Id;
+import miniORM.typeDefinition.DateParser;
 
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 public class EntityManager implements DbContext {
@@ -267,7 +269,6 @@ public class EntityManager implements DbContext {
             case "boolean":
                 return "BIT";
         }
-
         return null;
     }
 
@@ -336,7 +337,11 @@ public class EntityManager implements DbContext {
             field.setAccessible(true);
             if (!field.isAnnotationPresent(Id.class)) {
                 columns.add(this.getFieldName(field));
-                values.add("\'" + field.get(entity) + "\'");
+                if (!field.getType().isAssignableFrom(Date.class)) {
+                    values.add("\'" + field.get(entity) + "\'");
+                } else {
+                    values.add("\'" + DateParser.parseDate((Date) field.get(entity), "yyyy-MM-dd") + "\'");
+                }
             }
         }
 
@@ -372,8 +377,12 @@ public class EntityManager implements DbContext {
 
         for (Field field : entity.getClass().getDeclaredFields()) {
 
-            String row = this.getFieldName(field) + "=" + field.get(entity);
-            rows.add(row);
+            String row = this.getFieldName(field) + "=";
+            if (!field.getType().isAssignableFrom(Date.class)) {
+                rows.add(row + "\'" + field.get(entity) + "\'");
+            } else {
+                rows.add(row + "\'" + DateParser.parseDate((Date) field.get(entity), "yyyy-MM-dd") + "\'");
+            }
         }
 
         query = query + String.join(", ", rows);
@@ -388,6 +397,7 @@ public class EntityManager implements DbContext {
      * @param table     - table object class annotated with "@Entity"
      * @param resultSet - result from query
      * @param entity    - object instance from Entity class
+     * @return - instanced object from entity class
      * @throws SQLException
      * @throws IllegalAccessException
      */

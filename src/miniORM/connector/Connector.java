@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class Connector {
+public class Connector implements AutoCloseable {
 
     private static final String CREATE_IF_NO_EXIST = "?createDatabaseIfNotExist=true";
     private static final String MYSQL_CONFIG = "&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
@@ -35,5 +35,12 @@ public class Connector {
 
     public static Connection getConnection() {
         return connection;
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (connection != null) {
+            connection.close();
+        }
     }
 }

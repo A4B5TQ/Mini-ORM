@@ -9,8 +9,15 @@ import java.util.Date;
 
 public class Mapper {
 
-    private static String fieldName;
-
+    /**
+     *
+     * @param instance - new instance from entity class
+     * @param resultSet - result set from database
+     * @param fields - properties in entity class
+     * @return - filled instance from entity class
+     * @throws SQLException
+     * @throws IllegalAccessException
+     */
     public static <E> E map(E instance, ResultSet resultSet, Field... fields) throws SQLException, IllegalAccessException {
 
         for (Field field : fields) {
@@ -41,6 +48,11 @@ public class Mapper {
         return instance;
     }
 
+    /**
+     *
+     * @param field - class property
+     * @return - column name from database corresponding to the current entity field
+     */
     private static String getFieldName(Field field) {
 
         if (field.isAnnotationPresent(Column.class)) {
