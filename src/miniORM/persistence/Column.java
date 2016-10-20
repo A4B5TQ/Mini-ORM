@@ -31,4 +31,18 @@ public @interface Column {
      * Applies only if a string-valued column is used.
      */
     int length() default 255;
+
+
+    /**
+     * The precision for a decimal (exact numeric) column.
+     * (Applies only if a decimal column is used.)
+     * Value must be set by developer if used when generating the DDL for the column
+     */
+    int precision() default 0;
+
+    /**
+     * The scale for a decimal (exact numeric) column.
+     * (Applies only if a decimal column is used.)
+     */
+    int scale() default 0;
 }

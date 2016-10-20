@@ -43,6 +43,10 @@ public class Mapper {
             } else if (field.getType().isAssignableFrom(Date.class)) {
 
                 field.set(instance, resultSet.getDate(fieldName));
+            }else if (field.getType().isAssignableFrom(Double.TYPE) ||
+                    field.getType().isAssignableFrom(Double.class) ) {
+
+                field.set(instance, resultSet.getDate(fieldName));
             }
         }
         return instance;

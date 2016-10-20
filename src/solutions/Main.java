@@ -33,6 +33,9 @@ public class Main {
             User newUser = em.findFirst(User.class);
             System.out.println(String.format("Id: %d, Usernmae: %s, Password: %s, Age: %d, Register date: %s",
                     newUser.getId(), newUser.getUsername(), newUser.getPassword(), newUser.getAge(), newUser.getRegistrationDate().toString()));
+            // Update
+            newUser.setPassword("Update");
+            em.persist(newUser);
 
             //Find
             em.find(User.class).forEach(e -> System.out.println(String.format("Id: %d, Usernmae: %s, Password: %s, Age: %d, Register date: %s",

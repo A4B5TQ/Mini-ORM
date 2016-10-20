@@ -31,7 +31,7 @@ public class DateParser {
             try {
                 dateFormat.parse(currentFormat);
                 return parse;
-            } catch (ParseException e) {
+            } catch (ParseException ignored) {
             }
         }
         return currentFormat;

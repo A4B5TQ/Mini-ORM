@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 
 public class EntityManager implements DbContext {
 
+    private static final String DATE_FORMAT = "yyyy-MM-dd";
+
     private Connection connection;
     private Set<Object> persistedEntities;
     private Statement statement;
@@ -59,7 +61,7 @@ public class EntityManager implements DbContext {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public <E> Iterable<E> find(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
+    public <E> Set<E> find(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
 
         this.statement = this.connection.createStatement();
 
@@ -89,13 +91,13 @@ public class EntityManager implements DbContext {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public <E> Iterable<E> find(Class<E> table, String where) throws SQLException, IllegalAccessException, InstantiationException {
-        Statement statement = this.connection.createStatement();
+    public <E> Set<E> find(Class<E> table, String where) throws SQLException, IllegalAccessException, InstantiationException {
+        this.statement = this.connection.createStatement();
 
-        String query = "SELECT * FROM " + this.getTableName(table) + " WHERE 1 "
-                + (where != null ? "AND" + where : "");
+        String query = "SELECT * FROM " + this.getTableName(table) + " WHERE 1=1 "
+                + (where != null ? " AND " + where : "");
 
-        ResultSet resultSet = statement.executeQuery(query);
+        ResultSet resultSet = this.statement.executeQuery(query);
         if (this.persistedEntities.size() > 0) {
             this.persistedEntities.clear();
         }
@@ -117,11 +119,11 @@ public class EntityManager implements DbContext {
     @Override
     public <E> E findFirst(Class<E> table) throws SQLException, IllegalAccessException, InstantiationException {
 
-        Statement statement = this.connection.createStatement();
+        this.statement = this.connection.createStatement();
 
         String query = "SELECT * FROM " + this.getTableName(table) + " LIMIT 1";
 
-        ResultSet resultSet = statement.executeQuery(query);
+        ResultSet resultSet = this.statement.executeQuery(query);
 
         E entity = table.newInstance();
 
@@ -140,12 +142,12 @@ public class EntityManager implements DbContext {
     @Override
     public <E> E findFirst(Class<E> table, String where) throws SQLException, IllegalAccessException, InstantiationException {
 
-        Statement statement = this.connection.createStatement();
+        this.statement = this.connection.createStatement();
 
         String query = "SELECT * FROM " + this.getTableName(table) + " WHERE 1 "
-                + (where != null ? "AND" + where : "") + " LIMIT 1";
+                + (where != null ? " AND " + where : "") + " LIMIT 1";
 
-        ResultSet resultSet = statement.executeQuery(query);
+        ResultSet resultSet = this.statement.executeQuery(query);
 
         E entity = table.newInstance();
 
@@ -262,12 +264,17 @@ public class EntityManager implements DbContext {
                     return "VARCHAR" + "(" + column.length() + ")";
                 }
 
-                return "VARCHAR(50)";
+                return "VARCHAR(255)";
 
             case "date":
                 return "DATE";
             case "boolean":
                 return "BIT";
+            case "double":
+                if (field.isAnnotationPresent(Column.class)) {
+                    Column column = field.getAnnotation(Column.class);
+                    return "DOUBLE" + "(" + column.scale() + "," + column.precision() + ")";
+                }
         }
         return null;
     }
@@ -301,8 +308,8 @@ public class EntityManager implements DbContext {
 
         query = query + String.join(", ", queryItems) + ")";
 
-        Statement statement = this.connection.createStatement();
-        return statement.execute(query);
+        this.statement = this.connection.createStatement();
+        return this.statement.execute(query);
     }
 
     /**
@@ -340,7 +347,7 @@ public class EntityManager implements DbContext {
                 if (!field.getType().isAssignableFrom(Date.class)) {
                     values.add("\'" + field.get(entity) + "\'");
                 } else {
-                    values.add("\'" + DateParser.parseDate((Date) field.get(entity), "yyyy-MM-dd") + "\'");
+                    values.add("\'" + DateParser.parseDate((Date) field.get(entity), DATE_FORMAT) + "\'");
                 }
             }
         }
@@ -371,23 +378,28 @@ public class EntityManager implements DbContext {
      */
     private <E> boolean doUpdate(E entity, Field primary) throws SQLException, IllegalAccessException {
         String query = "UPDATE " + this.getTableName(entity.getClass()) + " SET ";
-        String where = "WHERE 1=1";
+        String where = " WHERE " + primary.getName() + "=?";
 
         List<String> rows = new ArrayList<>();
 
         for (Field field : entity.getClass().getDeclaredFields()) {
-
-            String row = this.getFieldName(field) + "=";
-            if (!field.getType().isAssignableFrom(Date.class)) {
-                rows.add(row + "\'" + field.get(entity) + "\'");
-            } else {
-                rows.add(row + "\'" + DateParser.parseDate((Date) field.get(entity), "yyyy-MM-dd") + "\'");
+            field.setAccessible(true);
+            if (!field.isAnnotationPresent(Id.class)) {
+                String row = this.getFieldName(field) + "=";
+                if (!field.getType().isAssignableFrom(Date.class)) {
+                    rows.add(row + "\'" + field.get(entity) + "\'");
+                } else {
+                    rows.add(row + "\'" + DateParser.parseDate((Date) field.get(entity), DATE_FORMAT) + "\'");
+                }
             }
         }
 
         query = query + String.join(", ", rows);
+        Long id = (Long)primary.get(entity);
 
-        return connection.prepareStatement(query + where).execute();
+        this.preparedStatement = connection.prepareStatement(query + where);
+        this.preparedStatement.setLong(1,id);
+        return this.preparedStatement.execute();
     }
 
 
